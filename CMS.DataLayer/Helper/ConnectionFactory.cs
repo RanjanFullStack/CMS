@@ -1,6 +1,6 @@
 ﻿using CMS.DataLayer.Interfaces;
 
-namespace CMS.DataLayer.Repository
+namespace CMS.DataLayer.Helper
 {
     public class ConnectionFactory : IConnectionFactory
     {

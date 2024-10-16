@@ -1,7 +1,8 @@
-﻿using CMS.Models.DatabaseContext;
+﻿using System.Linq;
+using System.Threading.Tasks;
+using CMS.DataLayer.Context;
 using CMS.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 
 namespace CMS.Repositories.Repository
 {
@@ -18,7 +19,7 @@ namespace CMS.Repositories.Repository
 
         public async Task<IQueryable<T>> GetAllAsync()
         {
-            return _dbSet.AsQueryable();
+            return await Task.FromResult(_dbSet.AsQueryable());
         }
 
         public async Task<T> GetByIdAsync(int id)

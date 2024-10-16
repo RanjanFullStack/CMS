@@ -1,32 +1,31 @@
-﻿using CMS.DataLayer.Repository;
-using Microsoft.Extensions.Configuration;
+﻿using CMS.DataLayer.Helper;
+using Microsoft.Extensions.Options;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace CMS.UnitTests.ConnectionHelperTests
 {
     public class ConnectionHelperTests
     {
-        private readonly Mock<IConfiguration> _configurationMock;
+        private readonly Mock<IOptions<DatabaseSettings>> _mockOptions;
         private readonly ConnectionHelper _connectionHelper;
 
         public ConnectionHelperTests()
         {
-            _configurationMock = new Mock<IConfiguration>();
-            _connectionHelper = new ConnectionHelper(_configurationMock.Object);
+            _mockOptions = new Mock<IOptions<DatabaseSettings>>();
+            _mockOptions.Setup(o => o.Value).Returns(new DatabaseSettings
+            {
+                UseJsonDb = true,
+                JsonFilePath = "path/to/jsonfile",
+                DefaultConnection = "Data Source=server;Initial Catalog=db;User Id=user;Password=pass;"
+            });
+
+            _connectionHelper = new ConnectionHelper(_mockOptions.Object);
         }
 
         [Fact]
-        public void UseJsonDatabase_ShouldReturnTrue_WhenConfigured()
+        public void UseJsonDatabase_ShouldReturnTrue_WhenConfigurationIsTrue()
         {
-            // Arrange
-            _configurationMock.Setup(config => config["DatabaseSettings:UseJsonDb"]).Returns("true");
-
             // Act
             var result = _connectionHelper.UseJsonDatabase();
 
@@ -35,33 +34,23 @@ namespace CMS.UnitTests.ConnectionHelperTests
         }
 
         [Fact]
-        public void GetJsonFilePath_ShouldReturnConfiguredPath()
+        public void GetJsonFilePath_ShouldReturnFilePath_WhenConfigurationIsValid()
         {
-            // Arrange
-            var expectedPath = "path/to/jsonfile.json";
-            _configurationMock.Setup(config => config["DatabaseSettings:JsonFilePath"]).Returns(expectedPath);
-
             // Act
             var result = _connectionHelper.GetJsonFilePath();
 
             // Assert
-            Assert.Equal(expectedPath, result);
+            Assert.Equal("path/to/jsonfile", result);
         }
 
         [Fact]
-        public void GetSqlConnectionString_ShouldReturnConfiguredConnectionString()
+        public void GetSqlConnectionString_ShouldReturnConnectionString_WhenConfigured()
         {
-            // Arrange
-            string expectedConnectionString = string.Empty;
-            _configurationMock.Setup(config => config.GetConnectionString("DefaultConnection")).Returns(expectedConnectionString);
-            // Assuming you want an integer value
-            //int myValue = _configuration.GetValue<int>("DefaultConnection"); // Use the correct type here
-
             // Act
             var result = _connectionHelper.GetSqlConnectionString();
 
             // Assert
-            Assert.Equal(expectedConnectionString, result);
+            Assert.Equal("Data Source=server;Initial Catalog=db;User Id=user;Password=pass;", result);
         }
     }
 }

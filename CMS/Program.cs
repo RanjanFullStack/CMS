@@ -1,11 +1,17 @@
+using CMS.DataLayer.Context;
+using CMS.DataLayer.Helper;
 using CMS.DataLayer.Interfaces;
-using CMS.DataLayer.Repository;
-using CMS.Models.DatabaseContext;
 using CMS.Models.DbModel;
 using CMS.Repositories.Interfaces;
 using CMS.Repositories.Repository;
 using CMS.Services;
 using CMS.Services.Interfaces;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 internal class Program
 {
@@ -14,11 +20,10 @@ internal class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Register services
+        builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection("DatabaseSettings"));
         builder.Services.AddSingleton<IConnectionHelper, ConnectionHelper>();
         builder.Services.AddScoped<IConnectionFactory, ConnectionFactory>();
-
         builder.Services.AddControllers();
-        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddScoped<IGenericRepository<Contact>, GenericRepository<Contact>>();
@@ -26,6 +31,9 @@ internal class Program
         //builder.Services.AddScoped<UnitOfWork.Interfaces.IUnitOfWork, UnitOfWork>();
         builder.Services.AddDbContext<JsonDbContext>();
 
+        // Configure DbContext with in-memory database for testing
+        builder.Services.AddDbContext<JsonDbContext>(options =>
+            options.UseInMemoryDatabase("InMemoryDb"));
 
         var app = builder.Build();
 
@@ -37,9 +45,7 @@ internal class Program
         }
 
         app.UseHttpsRedirection();
-
         app.UseAuthorization();
-
         app.MapControllers();
 
         app.UseExceptionHandler(errorApp =>
@@ -50,6 +56,7 @@ internal class Program
                 await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
             });
         });
+
         app.Run();
     }
 }

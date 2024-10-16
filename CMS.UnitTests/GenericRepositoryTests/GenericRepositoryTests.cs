@@ -1,69 +1,103 @@
-﻿using CMS.DataLayer.Repository;
-using CMS.Models.DatabaseContext;
-using CMS.Models.DTO;
+﻿using CMS.DataLayer.Context;
+using CMS.Models.DbModel;
 using CMS.Repositories.Repository;
-using Moq;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace CMS.UnitTests.GenericRepositoryTests
 {
     public class GenericRepositoryTests
     {
-        private readonly Mock<JsonDbContext> _jsonDbContext;
-        private readonly GenericRepository<ContactDTO> _repository;
-        private readonly List<ContactDTO> _contacts;
+        private readonly DbContextOptions<JsonDbContext> _options;
+        private readonly JsonDbContext _context;
+        private readonly GenericRepository<Contact> _repository;
 
         public GenericRepositoryTests()
         {
-            _jsonDbContext = new Mock<JsonDbContext>();
-            _contacts = new List<ContactDTO>();
-            _repository = new GenericRepository<ContactDTO>(_jsonDbContext.Object);
+            _options = new DbContextOptionsBuilder<JsonDbContext>()
+                .UseInMemoryDatabase(databaseName: "TestDatabase")
+                .Options;
+            _context = new JsonDbContext(_options);
+            _repository = new GenericRepository<Contact>(_context);
+
+            // Ensure database is empty before each test
+            _context.Database.EnsureDeleted();
+            _context.Database.EnsureCreated();
+
+            // Seed data
+            SeedData();
+        }
+
+        private void SeedData()
+        {
+            _context.Contacts.AddRange(
+                new Contact { Id = 1, FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" },
+                new Contact { Id = 2, FirstName = "Jane", LastName = "Smith", Email = "jane.smith@example.com" }
+            );
+            _context.SaveChanges();
         }
 
         [Fact]
-        public async Task AddAsync_ShouldAddContact()
+        public async Task GetAllAsync_ShouldReturnAllEntities()
         {
-            // Arrange
-            var contact = new ContactDTO { Id = 1, FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" };
-
-            // Act
-            await _repository.AddAsync(contact);
-            var allContacts = await _repository.GetAllAsync();
-
-            // Assert
-            Assert.Single(allContacts);
-            Assert.Equal(contact, allContacts.First());
-        }
-
-        [Fact]
-        public async Task GetByIdAsync_ShouldReturnCorrectContact()
-        {
-            // Arrange
-            var contact = new ContactDTO { Id = 1, FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" };
-            await _repository.AddAsync(contact);
-
-            // Act
-            var result = await _repository.GetByIdAsync(1);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.Equal(contact.Id, result.Id);
-        }
-
-        [Fact]
-        public async Task GetAllAsync_ShouldReturnAllContacts()
-        {
-            // Arrange
-            var contact1 = new ContactDTO { Id = 1, FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" };
-            var contact2 = new ContactDTO { Id = 2, FirstName = "Jane", LastName = "Doe", Email = "jane.doe@example.com" };
-            await _repository.AddAsync(contact1);
-            await _repository.AddAsync(contact2);
-
             // Act
             var result = await _repository.GetAllAsync();
 
             // Assert
             Assert.Equal(2, result.Count());
+        }
+
+        [Fact]
+        public async Task GetByIdAsync_ShouldReturnEntity_WhenEntityExists()
+        {
+            // Act
+            var result = await _repository.GetByIdAsync(1);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(1, result.Id);
+        }
+
+        [Fact]
+        public async Task AddAsync_ShouldAddEntity()
+        {
+            // Arrange
+            var entity = new Contact { Id = 3, FirstName = "Bill", LastName = "Gates", Email = "bill.gates@example.com" };
+
+            // Act
+            await _repository.AddAsync(entity);
+
+            // Assert
+            var addedEntity = await _context.Contacts.FindAsync(3);
+            Assert.NotNull(addedEntity);
+            Assert.Equal("Bill", addedEntity.FirstName);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldUpdateEntity_WhenEntityExists()
+        {
+            // Arrange
+            var entity = new Contact { Id = 1, FirstName = "UpdatedFirstName", LastName = "Doe", Email = "john.doe@example.com" };
+
+            // Act
+            var result = await _repository.UpdateAsync(1, entity);
+
+            // Assert
+            Assert.True(result);
+            var updatedEntity = await _context.Contacts.FindAsync(1);
+            Assert.Equal("UpdatedFirstName", updatedEntity.FirstName);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldDeleteEntity_WhenEntityExists()
+        {
+            // Act
+            var result = await _repository.DeleteAsync(1);
+
+            // Assert
+            Assert.True(result);
+            var deletedEntity = await _context.Contacts.FindAsync(1);
+            Assert.Null(deletedEntity);
         }
     }
 }
