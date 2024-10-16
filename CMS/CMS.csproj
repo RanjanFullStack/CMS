@@ -10,4 +10,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CMS.Repositories\CMS.Repositories.csproj" />
+    <ProjectReference Include="..\CMS.Services\CMS.Services.csproj" />
+    <ProjectReference Include="..\UnitOfWork\CMS.UnitOfWork.csproj" />
+  </ItemGroup>
+
 </Project>
