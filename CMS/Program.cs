@@ -3,15 +3,9 @@ using CMS.DataLayer.Helper;
 using CMS.DataLayer.Interfaces;
 using CMS.Models.DbModel;
 using CMS.Repositories.Interfaces;
-using CMS.Repositories.Repository;
 using CMS.Services;
 using CMS.Services.Interfaces;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 internal class Program
 {
@@ -26,14 +20,34 @@ internal class Program
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-        builder.Services.AddScoped<IGenericRepository<Contact>, GenericRepository<Contact>>();
+        //builder.Services.AddScoped<IGenericRepository<Contact>, GenericRepository<Contact>>();
+        builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+
         builder.Services.AddScoped<IContactService, ContactService>();
+
         //builder.Services.AddScoped<UnitOfWork.Interfaces.IUnitOfWork, UnitOfWork>();
-        builder.Services.AddDbContext<JsonDbContext>();
+        //builder.Services.AddDbContext<JsonDbContext>();
 
         // Configure DbContext with in-memory database for testing
-        builder.Services.AddDbContext<JsonDbContext>(options =>
-            options.UseInMemoryDatabase("InMemoryDb"));
+        //builder.Services.AddDbContext<JsonDbContext>(options =>
+        //    options.UseInMemoryDatabase("InMemoryDb"));
+        var connectionHelper = new ConnectionHelper(builder.Configuration);
+
+        if (connectionHelper.UseJsonDatabase())
+        {
+            // Register the JSON database context
+            builder.Services.AddSingleton<JsonDbContext>(provider =>
+                new JsonDbContext(connectionHelper.GetJsonFilePath()));
+        }
+        else
+        {
+            // Register the SQL database context
+            //builder.Services.AddDbContext<SqlDbContext>(options =>
+            //    options.UseSqlServer(connectionHelper.GetSqlConnectionString()));
+            builder.Services.AddDbContext<SqlDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+        }
+
 
         var app = builder.Build();
 

@@ -1,39 +1,30 @@
 ﻿using CMS.DataLayer.Interfaces;
-using Microsoft.Extensions.Options;
-using System;
+using Microsoft.Extensions.Configuration;
 
 namespace CMS.DataLayer.Helper
 {
     public class ConnectionHelper : IConnectionHelper
     {
-        private readonly DatabaseSettings _settings;
+        private readonly IConfiguration _configuration;
 
-        public ConnectionHelper(IOptions<DatabaseSettings> options)
+        public ConnectionHelper(IConfiguration configuration)
         {
-            _settings = options.Value ?? throw new ArgumentNullException(nameof(options));
+            _configuration = configuration;
         }
 
         public bool UseJsonDatabase()
         {
-            return _settings.UseJsonDb;
+            return bool.TryParse(_configuration["DatabaseSettings:UseJsonDb"], out bool useJson) && useJson;
         }
 
         public string GetJsonFilePath()
         {
-            if (string.IsNullOrEmpty(_settings.JsonFilePath))
-            {
-                throw new InvalidOperationException("JsonFilePath is not configured.");
-            }
-            return _settings.JsonFilePath;
+            return _configuration["DatabaseSettings:JsonFilePath"];
         }
 
         public string GetSqlConnectionString()
         {
-            if (string.IsNullOrEmpty(_settings.DefaultConnection))
-            {
-                throw new InvalidOperationException("DefaultConnection is not configured.");
-            }
-            return _settings.DefaultConnection;
+            return _configuration.GetConnectionString("DefaultConnection");
         }
     }
 }

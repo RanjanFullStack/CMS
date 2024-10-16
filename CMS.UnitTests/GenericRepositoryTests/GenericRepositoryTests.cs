@@ -1,45 +1,38 @@
 ﻿using CMS.DataLayer.Context;
+using CMS.DataLayer.Interfaces;
 using CMS.Models.DbModel;
-using CMS.Repositories.Repository;
-using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace CMS.UnitTests.GenericRepositoryTests
 {
     public class GenericRepositoryTests
     {
-        private readonly DbContextOptions<JsonDbContext> _options;
-        private readonly JsonDbContext _context;
+        private readonly Mock<IJsonDbContext> _jsonDbContextMock;
+        private readonly Mock<SqlDbContext> _sqlDbContextMock; // Assuming this is a mockable DbContext
         private readonly GenericRepository<Contact> _repository;
+        private readonly List<Contact> _contacts;
 
         public GenericRepositoryTests()
         {
-            _options = new DbContextOptionsBuilder<JsonDbContext>()
-                .UseInMemoryDatabase(databaseName: "TestDatabase")
-                .Options;
-            _context = new JsonDbContext(_options);
-            _repository = new GenericRepository<Contact>(_context);
+            _jsonDbContextMock = new Mock<IJsonDbContext>();
+            _sqlDbContextMock = new Mock<SqlDbContext>();
+            _contacts = new List<Contact>();
 
-            // Ensure database is empty before each test
-            _context.Database.EnsureDeleted();
-            _context.Database.EnsureCreated();
+            // Setting up mock for JSON Database
+            _jsonDbContextMock.Setup(db => db.GetContacts()).Returns((List<Contact>)_contacts.AsQueryable());
 
-            // Seed data
-            SeedData();
-        }
-
-        private void SeedData()
-        {
-            _context.Contacts.AddRange(
-                new Contact { Id = 1, FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" },
-                new Contact { Id = 2, FirstName = "Jane", LastName = "Smith", Email = "jane.smith@example.com" }
-            );
-            _context.SaveChanges();
+            // Initialize repository to use JSON database
+            _repository = new GenericRepository<Contact>((JsonDbContext)_jsonDbContextMock.Object, _sqlDbContextMock.Object, true);
         }
 
         [Fact]
-        public async Task GetAllAsync_ShouldReturnAllEntities()
+        public async Task GetAllAsync_UsesJsonDb_ReturnsAllContacts()
         {
+            // Arrange
+            _contacts.Add(new Contact { Id = 1, FirstName = "Alice", LastName = "Smith", Email = "alice@example.com" });
+            _contacts.Add(new Contact { Id = 2, FirstName = "Bob", LastName = "Jones", Email = "bob@example.com" });
+
             // Act
             var result = await _repository.GetAllAsync();
 
@@ -48,56 +41,63 @@ namespace CMS.UnitTests.GenericRepositoryTests
         }
 
         [Fact]
-        public async Task GetByIdAsync_ShouldReturnEntity_WhenEntityExists()
+        public async Task GetByIdAsync_UsesJsonDb_ReturnsContact()
         {
+            // Arrange
+            var contact = new Contact { Id = 1, FirstName = "Alice", LastName = "Smith", Email = "alice@example.com" };
+            _contacts.Add(contact);
+
             // Act
             var result = await _repository.GetByIdAsync(1);
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal(1, result.Id);
+            Assert.Equal(contact, result);
         }
 
         [Fact]
-        public async Task AddAsync_ShouldAddEntity()
+        public async Task AddAsync_UsesJsonDb_AddsContact()
         {
             // Arrange
-            var entity = new Contact { Id = 3, FirstName = "Bill", LastName = "Gates", Email = "bill.gates@example.com" };
+            var newContact = new Contact { FirstName = "Alice", LastName = "Smith", Email = "alice@example.com" };
 
             // Act
-            await _repository.AddAsync(entity);
+            await _repository.AddAsync(newContact);
 
             // Assert
-            var addedEntity = await _context.Contacts.FindAsync(3);
-            Assert.NotNull(addedEntity);
-            Assert.Equal("Bill", addedEntity.FirstName);
+            _jsonDbContextMock.Verify(db => db.AddContact(It.IsAny<Contact>()), Times.Once);
+            Assert.Single(_contacts); // Ensure the contact was added to the in-memory list
         }
 
         [Fact]
-        public async Task UpdateAsync_ShouldUpdateEntity_WhenEntityExists()
+        public async Task UpdateAsync_UsesJsonDb_UpdatesContact()
         {
             // Arrange
-            var entity = new Contact { Id = 1, FirstName = "UpdatedFirstName", LastName = "Doe", Email = "john.doe@example.com" };
+            var existingContact = new Contact { Id = 1, FirstName = "Alice", LastName = "Smith", Email = "alice@example.com" };
+            _contacts.Add(existingContact);
+
+            var updatedContact = new Contact { Id = 1, FirstName = "Alice", LastName = "Johnson", Email = "alice.johnson@example.com" };
 
             // Act
-            var result = await _repository.UpdateAsync(1, entity);
+            var result = await _repository.UpdateAsync(1, updatedContact);
 
             // Assert
             Assert.True(result);
-            var updatedEntity = await _context.Contacts.FindAsync(1);
-            Assert.Equal("UpdatedFirstName", updatedEntity.FirstName);
+            Assert.Equal("Johnson", _contacts.First().LastName); // Check if the last name was updated
         }
 
         [Fact]
-        public async Task DeleteAsync_ShouldDeleteEntity_WhenEntityExists()
+        public async Task DeleteAsync_UsesJsonDb_DeletesContact()
         {
+            // Arrange
+            var existingContact = new Contact { Id = 1, FirstName = "Alice", LastName = "Smith", Email = "alice@example.com" };
+            _contacts.Add(existingContact);
+
             // Act
             var result = await _repository.DeleteAsync(1);
 
             // Assert
             Assert.True(result);
-            var deletedEntity = await _context.Contacts.FindAsync(1);
-            Assert.Null(deletedEntity);
+            Assert.Empty(_contacts); // Ensure the contact was removed from the in-memory list
         }
     }
 }

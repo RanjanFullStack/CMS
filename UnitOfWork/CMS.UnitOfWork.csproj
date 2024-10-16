@@ -7,6 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Implementation\**" />
+    <Compile Remove="Interfaces\**" />
+    <EmbeddedResource Remove="Implementation\**" />
+    <EmbeddedResource Remove="Interfaces\**" />
+    <None Remove="Implementation\**" />
+    <None Remove="Interfaces\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CMS.Repositories\CMS.Repositories.csproj" />
   </ItemGroup>
 

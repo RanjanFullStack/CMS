@@ -1,56 +1,106 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
-using CMS.DataLayer.Context;
+﻿using CMS.Models.DbModel;
 using CMS.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace CMS.Repositories.Repository
+namespace CMS.DataLayer.Context
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
-        private readonly JsonDbContext _context;
-        private readonly DbSet<T> _dbSet;
+        private readonly JsonDbContext _jsonDbContext;
+        private readonly SqlDbContext _sqlDbContext;
+        private readonly bool _useJsonDb;
 
-        public GenericRepository(JsonDbContext context)
+        public GenericRepository(JsonDbContext jsonDbContext, SqlDbContext sqlDbContext, bool useJsonDb)
         {
-            _context = context;
-            _dbSet = _context.Set<T>();
+            _jsonDbContext = jsonDbContext;
+            _sqlDbContext = sqlDbContext;
+            _useJsonDb = useJsonDb;
         }
 
         public async Task<IQueryable<T>> GetAllAsync()
         {
-            return await Task.FromResult(_dbSet.AsQueryable());
+            if (_useJsonDb)
+            {
+                return (IQueryable<T>)_jsonDbContext.GetContacts().AsQueryable();
+            }
+            else
+            {
+                return (IQueryable<T>)await _sqlDbContext.Set<T>().ToListAsync();
+            }
         }
 
         public async Task<T> GetByIdAsync(int id)
         {
-            return await _dbSet.FindAsync(id);
+            if (_useJsonDb)
+            {
+                return (T)(object)_jsonDbContext.GetContacts().FirstOrDefault(c => c.Id == id);
+            }
+            else
+            {
+                return await _sqlDbContext.Set<T>().FindAsync(id);
+            }
         }
 
         public async Task AddAsync(T entity)
         {
-            await _dbSet.AddAsync(entity);
-            await _context.SaveChangesAsync();
+            if (_useJsonDb)
+            {
+                if (entity is Contact contact)
+                {
+                    _jsonDbContext.AddContact(contact);
+                }
+            }
+            else
+            {
+                await _sqlDbContext.Set<T>().AddAsync(entity);
+            }
         }
 
         public async Task<bool> UpdateAsync(int id, T entity)
         {
-            var existingEntity = await _dbSet.FindAsync(id);
-            if (existingEntity == null) return false;
+            if (_useJsonDb)
+            {
+                if (entity is Contact contact)
+                {
+                    var existingContact = _jsonDbContext.GetContacts().FirstOrDefault(c => c.Id == id);
+                    if (existingContact != null)
+                    {
+                        _jsonDbContext.UpdateContact(contact);
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                _sqlDbContext.Set<T>().Update(entity);
+                return true;
+            }
 
-            _context.Entry(existingEntity).CurrentValues.SetValues(entity);
-            await _context.SaveChangesAsync();
-            return true;
+            return false;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var entity = await _dbSet.FindAsync(id);
-            if (entity == null) return false;
+            if (_useJsonDb)
+            {
+                var contact = _jsonDbContext.GetContacts().FirstOrDefault(c => c.Id == id);
+                if (contact != null)
+                {
+                    _jsonDbContext.DeleteContact(id);
+                    return true;
+                }
+            }
+            else
+            {
+                var entity = await _sqlDbContext.Set<T>().FindAsync(id);
+                if (entity != null)
+                {
+                    _sqlDbContext.Set<T>().Remove(entity);
+                    return true;
+                }
+            }
 
-            _dbSet.Remove(entity);
-            await _context.SaveChangesAsync();
-            return true;
+            return false;
         }
     }
 }

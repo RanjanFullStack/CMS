@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CMS.Models\CMS.Models.csproj" />
-    <ProjectReference Include="..\UnitOfWork\CMS.UnitOfWork.csproj" />
+    <ProjectReference Include="..\CMS.Repositories\CMS.Repositories.csproj" />
   </ItemGroup>
 
 </Project>

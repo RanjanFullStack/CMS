@@ -1,7 +1,6 @@
 ﻿using CMS.DataLayer.Context;
 using CMS.Models.DbModel;
 using CMS.Repositories.Interfaces;
-using CMS.Repositories.Repository;
 using UnitOfWork.Interfaces;
 
 namespace UnitOfWork.Implementation

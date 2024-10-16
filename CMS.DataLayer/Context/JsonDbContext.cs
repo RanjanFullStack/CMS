@@ -1,23 +1,76 @@
-﻿using CMS.Models.DbModel;
-using Microsoft.EntityFrameworkCore;
+﻿using System.Text.Json;
+using CMS.DataLayer.Interfaces;
+using CMS.Models.DbModel;
 
 namespace CMS.DataLayer.Context
 {
-    public class JsonDbContext : DbContext
+    public class JsonDbContext : IJsonDbContext
     {
-        public JsonDbContext(DbContextOptions<JsonDbContext> options) : base(options) { }
+        private readonly string _jsonFilePath;
+        private List<Contact> _contacts;
 
-        public DbSet<Contact> Contacts { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        public JsonDbContext(string jsonFilePath)
         {
-            base.OnModelCreating(modelBuilder);
+            _jsonFilePath = jsonFilePath;
+            LoadData();
+        }
 
-            modelBuilder.Entity<Contact>(entity =>
+        private void LoadData()
+        {
+            if (File.Exists(_jsonFilePath))
             {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).ValueGeneratedOnAdd();  // Configure Id to be auto-incremented
-            });
+                var json = File.ReadAllText(_jsonFilePath);
+                _contacts = JsonSerializer.Deserialize<List<Contact>>(json) ?? new List<Contact>();
+            }
+            else
+            {
+                _contacts = new List<Contact>();
+            }
+        }
+
+        private void SaveData()
+        {
+            var json = JsonSerializer.Serialize(_contacts);
+            File.WriteAllText(_jsonFilePath, json);
+        }
+
+        public List<Contact> GetContacts() => _contacts;
+
+        public virtual void AddContact(Contact contact)
+        {
+            // Manual ID Auto-Increment
+            if (_contacts.Any())
+            {
+                contact.Id = _contacts.Max(c => c.Id) + 1;
+            }
+            else
+            {
+                contact.Id = 1;
+            }
+            _contacts.Add(contact);
+            SaveData();
+        }
+
+        public void UpdateContact(Contact contact)
+        {
+            var existingContact = _contacts.FirstOrDefault(c => c.Id == contact.Id);
+            if (existingContact != null)
+            {
+                existingContact.FirstName = contact.FirstName;
+                existingContact.LastName = contact.LastName;
+                existingContact.Email = contact.Email;
+                SaveData();
+            }
+        }
+
+        public void DeleteContact(int id)
+        {
+            var contact = _contacts.FirstOrDefault(c => c.Id == id);
+            if (contact != null)
+            {
+                _contacts.Remove(contact);
+                SaveData();
+            }
         }
     }
 }
