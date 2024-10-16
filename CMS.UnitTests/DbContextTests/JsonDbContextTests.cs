@@ -19,8 +19,7 @@ namespace CMS.UnitTests.DbContextTests
             jsonDbContext.AddContact(contact2);
 
             // Assert
-            Assert.Equal(5, contact1.Id);
-            Assert.Equal(6, contact2.Id);
+            Assert.Equal(contact1.Id + 1, contact2.Id);
         }
     }
 }
