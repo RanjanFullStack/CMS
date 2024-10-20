@@ -52,7 +52,7 @@ namespace CMS.UnitTests.ControllerTests
             // Assert
             var createdResult = Assert.IsType<CreatedAtActionResult>(result);
             Assert.Equal("GetContactById", createdResult.ActionName);
-            Assert.Equal(contactRequest, createdResult.Value);
+            Assert.Equal(contact, createdResult.Value);
         }
 
         [Fact]
