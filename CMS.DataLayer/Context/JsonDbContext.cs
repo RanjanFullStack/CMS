@@ -36,17 +36,10 @@ namespace CMS.DataLayer.Context
 
         public List<Contact> GetContacts() => _contacts;
 
-        public virtual void AddContact(Contact contact)
+        public void AddContact(Contact contact)
         {
             // Manual ID Auto-Increment
-            if (_contacts.Any())
-            {
-                contact.Id = _contacts.Max(c => c.Id) + 1;
-            }
-            else
-            {
-                contact.Id = 1;
-            }
+            contact.Id = _contacts.Any() ? _contacts.Max(c => c.Id) + 1 : 1;
             _contacts.Add(contact);
             SaveData();
         }

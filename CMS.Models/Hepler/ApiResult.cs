@@ -27,6 +27,7 @@ namespace CMS.Models.Helper
             FilterQuery = filterQuery;
         }
 
+        // Async method for SQL Db (using Entity Framework)
         public static async Task<ApiResult<T>> CreateAsync(
             IQueryable<T> source,
             int pageIndex,
@@ -36,7 +37,55 @@ namespace CMS.Models.Helper
             string filterColumn = null,
             string filterQuery = null)
         {
-            // Filter the data
+            // Apply filtering
+            source = ApplyFilter(source, filterColumn, filterQuery);
+
+            // Get total count after filtering
+            var count = await source.CountAsync();
+
+            // Apply sorting
+            source = ApplySorting(source, sortColumn, sortOrder);
+
+            // Apply pagination
+            source = source.Skip(pageIndex * pageSize).Take(pageSize);
+
+            // Get the data as a list asynchronously
+            var data = await source.ToListAsync();
+
+            return new ApiResult<T>(data, count, pageIndex, pageSize, sortColumn, sortOrder, filterColumn, filterQuery);
+        }
+
+        // Synchronous method for JSON Db
+        public static ApiResult<T> Create(
+            IQueryable<T> source,
+            int pageIndex,
+            int pageSize,
+            string sortColumn = null,
+            string sortOrder = null,
+            string filterColumn = null,
+            string filterQuery = null)
+        {
+            // Apply filtering
+            source = ApplyFilter(source, filterColumn, filterQuery);
+
+            // Get total count after filtering
+            var count = source.Count();
+
+            // Apply sorting
+            source = ApplySorting(source, sortColumn, sortOrder);
+
+            // Apply pagination
+            source = source.Skip(pageIndex * pageSize).Take(pageSize);
+
+            // Get the data synchronously
+            var data = source.ToList();
+
+            return new ApiResult<T>(data, count, pageIndex, pageSize, sortColumn, sortOrder, filterColumn, filterQuery);
+        }
+
+        // Filter method (common for both async and sync)
+        private static IQueryable<T> ApplyFilter(IQueryable<T> source, string filterColumn, string filterQuery)
+        {
             if (!string.IsNullOrEmpty(filterColumn) && !string.IsNullOrEmpty(filterQuery) && IsValidProperty(filterColumn))
             {
                 var parameter = Expression.Parameter(typeof(T), "x");
@@ -48,10 +97,12 @@ namespace CMS.Models.Helper
                 source = source.Where(lambda);
             }
 
-            // Get the total count after filtering
-            var count = await source.CountAsync();
+            return source;
+        }
 
-            // Sort the data
+        // Sorting method (common for both async and sync)
+        private static IQueryable<T> ApplySorting(IQueryable<T> source, string sortColumn, string sortOrder)
+        {
             if (!string.IsNullOrEmpty(sortColumn) && IsValidProperty(sortColumn))
             {
                 sortOrder = !string.IsNullOrEmpty(sortOrder) && sortOrder.ToUpper() == "ASC" ? "ASC" : "DESC";
@@ -70,13 +121,7 @@ namespace CMS.Models.Helper
                 source = source.Provider.CreateQuery<T>(orderByExpression);
             }
 
-            // Pagination
-            source = source.Skip(pageIndex * pageSize).Take(pageSize);
-
-            // Retrieve the paged and sorted data
-            var data = await source.ToListAsync();
-
-            return new ApiResult<T>(data, count, pageIndex, pageSize, sortColumn, sortOrder, filterColumn, filterQuery);
+            return source;
         }
 
         public static bool IsValidProperty(string propertyName, bool throwExceptionIfNotFound = true)

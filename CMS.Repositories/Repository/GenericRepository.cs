@@ -1,4 +1,5 @@
 ﻿using CMS.Models.DbModel;
+using CMS.Models.DbModel;
 using CMS.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,13 +22,40 @@ namespace CMS.DataLayer.Context
         {
             if (_useJsonDb)
             {
-                return (IQueryable<T>)_jsonDbContext.GetContacts().AsQueryable();
+                if (typeof(T) == typeof(Contact))
+                {
+                    var contacts = _jsonDbContext.GetContacts()
+                        .Select(contact => new Contact
+                        {
+                            Id = contact.Id,
+                            FirstName = contact.FirstName,
+                            LastName = contact.LastName,
+                            Email = contact.Email
+                        }).AsQueryable();
+
+                    return (IQueryable<T>)contacts;
+                }
             }
             else
             {
-                return (IQueryable<T>)await _sqlDbContext.Set<T>().ToListAsync();
+                if (typeof(T) == typeof(Contact))
+                {
+                    var contacts = await _sqlDbContext.Set<Contact>()
+                        .Select(contact => new Contact
+                        {
+                            Id = contact.Id,
+                            FirstName = contact.FirstName,
+                            LastName = contact.LastName,
+                            Email = contact.Email
+                        }).ToListAsync(); // Use ToListAsync to convert to List<T> for async operations
+
+                    return (IQueryable<T>)contacts.AsQueryable();
+                }
             }
+
+            return Enumerable.Empty<T>().AsQueryable();
         }
+
 
         public async Task<T> GetByIdAsync(int id)
         {

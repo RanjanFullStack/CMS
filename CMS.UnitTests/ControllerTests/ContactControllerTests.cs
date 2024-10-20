@@ -1,5 +1,6 @@
 ﻿using CMS.Controllers;
-using CMS.Models.DTO;
+using CMS.Models.DbModel;
+using CMS.Models.RequestModel;
 using CMS.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -23,7 +24,7 @@ namespace CMS.UnitTests.ControllerTests
         {
             // Arrange
             var contactId = 1;
-            var contact = new ContactDTO { Id = contactId, FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" };
+            var contact = new Contact { Id = contactId, FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" };
 
             _contactServiceMock.Setup(service => service.GetContactByIdAsync(contactId)).ReturnsAsync(contact);
 
@@ -32,7 +33,7 @@ namespace CMS.UnitTests.ControllerTests
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
-            var returnedContact = Assert.IsType<ContactDTO>(okResult.Value);
+            var returnedContact = Assert.IsType<Contact>(okResult.Value);
             Assert.Equal(contactId, returnedContact.Id);
         }
 
@@ -40,17 +41,18 @@ namespace CMS.UnitTests.ControllerTests
         public async Task CreateContact_ShouldReturnCreatedAtActionResult_WhenContactIsCreated()
         {
             // Arrange
-            var contactDto = new ContactDTO { FirstName = "John", LastName = "Doe", Email = "john.doe@example.com", Id = 1 };
+            var contactRequest = new ContactRequest { FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" };
+            var contact = new Contact { FirstName = "John", LastName = "Doe", Email = "john.doe@example.com", Id = 1 };
 
-            _contactServiceMock.Setup(service => service.CreateContactAsync(contactDto)).ReturnsAsync(contactDto);
+            _contactServiceMock.Setup(service => service.CreateContactAsync(contactRequest)).ReturnsAsync(contact);
 
             // Act
-            var result = await _contactController.CreateContact(contactDto);
+            var result = await _contactController.CreateContact(contactRequest);
 
             // Assert
             var createdResult = Assert.IsType<CreatedAtActionResult>(result);
             Assert.Equal("GetContactById", createdResult.ActionName);
-            Assert.Equal(contactDto, createdResult.Value);
+            Assert.Equal(contactRequest, createdResult.Value);
         }
 
         [Fact]
@@ -58,12 +60,12 @@ namespace CMS.UnitTests.ControllerTests
         {
             // Arrange
             var contactId = 1;
-            var contactDto = new ContactDTO { Id = contactId, FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" };
+            var contactRequest = new Contact { Id = contactId, FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" };
 
-            _contactServiceMock.Setup(service => service.UpdateContactAsync(contactId, contactDto)).ReturnsAsync(true);
+            _contactServiceMock.Setup(service => service.UpdateContactAsync(contactId, contactRequest)).ReturnsAsync(true);
 
             // Act
-            var result = await _contactController.UpdateContact(contactId, contactDto);
+            var result = await _contactController.UpdateContact(contactId, contactRequest);
 
             // Assert
             Assert.IsType<NoContentResult>(result);

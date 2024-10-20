@@ -1,4 +1,5 @@
-﻿using CMS.Models.DTO;
+﻿using CMS.Models.DbModel;
+using CMS.Models.RequestModel;
 using CMS.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -34,26 +35,26 @@ namespace CMS.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateContact([FromBody] ContactDTO contactDto)
+        public async Task<IActionResult> CreateContact([FromBody] ContactRequest contactRequest)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var createdContact = await _contactService.CreateContactAsync(contactDto);
+            var createdContact = await _contactService.CreateContactAsync(contactRequest);
             return CreatedAtAction(nameof(GetContactById), new { id = createdContact.Id }, createdContact);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateContact(int id, [FromBody] ContactDTO contactDto)
+        public async Task<IActionResult> UpdateContact(int id, [FromBody] Contact contact)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var updated = await _contactService.UpdateContactAsync(id, contactDto);
+            var updated = await _contactService.UpdateContactAsync(id, contact);
             if (!updated)
             {
                 return NotFound();

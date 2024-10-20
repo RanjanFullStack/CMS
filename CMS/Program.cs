@@ -23,7 +23,12 @@ internal class Program
         //builder.Services.AddScoped<IGenericRepository<Contact>, GenericRepository<Contact>>();
         builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
-        builder.Services.AddScoped<IContactService, ContactService>();
+        var useJsonDb = builder.Configuration.GetValue<bool>("DatabaseSettings:UseJsonDb");
+
+        builder.Services.AddScoped<IContactService>(sp => new ContactService(
+            sp.GetRequiredService<IGenericRepository<Contact>>(),
+            useJsonDb
+        ));
 
         //builder.Services.AddScoped<UnitOfWork.Interfaces.IUnitOfWork, UnitOfWork>();
         //builder.Services.AddDbContext<JsonDbContext>();
@@ -32,6 +37,22 @@ internal class Program
         //builder.Services.AddDbContext<JsonDbContext>(options =>
         //    options.UseInMemoryDatabase("InMemoryDb"));
         var connectionHelper = new ConnectionHelper(builder.Configuration);
+
+        builder.Services.AddDbContext<SqlDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+        // Program.cs
+
+        
+
+        builder.Services.AddScoped<IGenericRepository<Contact>>(provider =>
+        {
+            var jsonDbContext = provider.GetService<JsonDbContext>();
+            var sqlDbContext = provider.GetService<SqlDbContext>();
+            return new GenericRepository<Contact>(jsonDbContext, sqlDbContext, useJsonDb);
+        });
+
+
 
         if (connectionHelper.UseJsonDatabase())
         {
