@@ -21,7 +21,19 @@ internal class Program
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-        //builder.Services.AddScoped<IGenericRepository<Contact>, GenericRepository<Contact>>();
+
+        // CORS configuration
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAllOrigins",
+                builder =>
+                {
+                    builder.AllowAnyOrigin()
+                           .AllowAnyMethod()
+                           .AllowAnyHeader();
+                });
+        });
+
         builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
         var useJsonDb = builder.Configuration.GetValue<bool>("DatabaseSettings:UseJsonDb");
@@ -31,20 +43,10 @@ internal class Program
             useJsonDb
         ));
 
-        //builder.Services.AddScoped<UnitOfWork.Interfaces.IUnitOfWork, UnitOfWork>();
-        //builder.Services.AddDbContext<JsonDbContext>();
-
-        // Configure DbContext with in-memory database for testing
-        //builder.Services.AddDbContext<JsonDbContext>(options =>
-        //    options.UseInMemoryDatabase("InMemoryDb"));
         var connectionHelper = new ConnectionHelper(builder.Configuration);
 
         builder.Services.AddDbContext<SqlDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-        // Program.cs
-
-        
+            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
         builder.Services.AddScoped<IGenericRepository<Contact>>(provider =>
         {
@@ -53,22 +55,12 @@ internal class Program
             return new GenericRepository<Contact>(jsonDbContext, sqlDbContext, useJsonDb);
         });
 
-
-
         if (connectionHelper.UseJsonDatabase())
         {
             // Register the JSON database context
             builder.Services.AddSingleton<JsonDbContext>(provider =>
                 new JsonDbContext(connectionHelper.GetJsonFilePath()));
         }
-        else
-        {
-            // Register the SQL database context
-            throw new Exception("Please implement SqlDbContext.");
-            //builder.Services.AddDbContext<SqlDbContext>(options =>
-            //    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-        }
-
 
         var app = builder.Build();
 
@@ -81,6 +73,10 @@ internal class Program
 
         app.UseHttpsRedirection();
         app.UseAuthorization();
+
+        // Enable CORS
+        app.UseCors("AllowAllOrigins");
+
         app.MapControllers();
 
         app.UseExceptionHandler(errorApp =>
