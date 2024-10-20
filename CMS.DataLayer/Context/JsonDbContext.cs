@@ -20,11 +20,11 @@ namespace CMS.DataLayer.Context
             if (File.Exists(_jsonFilePath))
             {
                 var json = File.ReadAllText(_jsonFilePath);
-                _contacts = JsonSerializer.Deserialize<List<Contact>>(json) ?? new List<Contact>();
+                _contacts = JsonSerializer.Deserialize<List<Contact>>(json) ?? [];
             }
             else
             {
-                _contacts = new List<Contact>();
+                _contacts = [];
             }
         }
 
@@ -34,7 +34,7 @@ namespace CMS.DataLayer.Context
             File.WriteAllText(_jsonFilePath, json);
         }
 
-        public List<Contact> GetContacts() => _contacts;
+        public virtual List<Contact> GetContacts() => _contacts;
 
         public void AddContact(Contact contact)
         {

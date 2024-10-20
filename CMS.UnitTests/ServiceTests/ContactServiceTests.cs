@@ -1,4 +1,5 @@
 ﻿using CMS.Models.DbModel;
+using CMS.Models.RequestModel;
 using CMS.Repositories.Interfaces;
 using CMS.Services;
 using Moq;
@@ -58,7 +59,7 @@ namespace CMS.UnitTests.ServiceTests
         public async Task CreateContactAsync_AddsContactWithAutoIncrementedId()
         {
             // Arrange
-            var newContact = new Contact { FirstName = "Alice", LastName = "Smith", Email = "alice@example.com" };
+            var contactRequest = new ContactRequest { FirstName = "Alice", LastName = "Smith", Email = "alice@example.com" };
             var existingContacts = new List<Contact>
             {
                 new Contact { Id = 1, FirstName = "John", LastName = "Doe", Email = "john@example.com" }
@@ -66,7 +67,7 @@ namespace CMS.UnitTests.ServiceTests
             _contactRepositoryMock.Setup(repo => repo.GetAllAsync()).ReturnsAsync(existingContacts.AsQueryable());
 
             // Act
-            var result = await _contactService.CreateContactAsync(newContact);
+            var result = await _contactService.CreateContactAsync(contactRequest);
 
             // Assert
             Assert.NotNull(result);

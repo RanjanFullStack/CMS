@@ -1,10 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using CMS.Models.DbModel;
+using CMS.DataLayer.Interfaces;
 
 namespace CMS.DataLayer.Context
 {
-    public class SqlDbContext : DbContext
+    public class SqlDbContext : DbContext, ISqlDbContext
     {
+        public DbSet<T> Set<T>() where T : class
+        {
+            return base.Set<T>();
+        }
+
         public SqlDbContext(DbContextOptions<SqlDbContext> options) : base(options)
         {
         }

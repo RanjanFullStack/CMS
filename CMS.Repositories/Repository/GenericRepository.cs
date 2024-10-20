@@ -1,17 +1,17 @@
-﻿using CMS.Models.DbModel;
+﻿using CMS.DataLayer.Interfaces;
 using CMS.Models.DbModel;
 using CMS.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace CMS.DataLayer.Context
+namespace CMS.Repositories.Repository
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
-        private readonly JsonDbContext _jsonDbContext;
-        private readonly SqlDbContext _sqlDbContext;
+        private readonly IJsonDbContext _jsonDbContext;
+        private readonly ISqlDbContext _sqlDbContext;
         private readonly bool _useJsonDb;
 
-        public GenericRepository(JsonDbContext jsonDbContext, SqlDbContext sqlDbContext, bool useJsonDb)
+        public GenericRepository(IJsonDbContext jsonDbContext, ISqlDbContext sqlDbContext, bool useJsonDb)
         {
             _jsonDbContext = jsonDbContext;
             _sqlDbContext = sqlDbContext;
