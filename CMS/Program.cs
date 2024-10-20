@@ -42,10 +42,9 @@ internal class Program
         else
         {
             // Register the SQL database context
+            throw new Exception("Please implement SqlDbContext.");
             //builder.Services.AddDbContext<SqlDbContext>(options =>
-            //    options.UseSqlServer(connectionHelper.GetSqlConnectionString()));
-            builder.Services.AddDbContext<SqlDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            //    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
         }
 
 

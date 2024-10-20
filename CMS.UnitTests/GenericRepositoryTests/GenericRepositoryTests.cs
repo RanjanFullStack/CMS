@@ -8,22 +8,27 @@ namespace CMS.UnitTests.GenericRepositoryTests
 {
     public class GenericRepositoryTests
     {
-        private readonly Mock<IJsonDbContext> _jsonDbContextMock;
+        private readonly Mock<JsonDbContext> _jsonDbContextMock;
         private readonly Mock<SqlDbContext> _sqlDbContextMock; // Assuming this is a mockable DbContext
         private readonly GenericRepository<Contact> _repository;
         private readonly List<Contact> _contacts;
 
         public GenericRepositoryTests()
         {
-            _jsonDbContextMock = new Mock<IJsonDbContext>();
+            _jsonDbContextMock = new Mock<JsonDbContext>();
             _sqlDbContextMock = new Mock<SqlDbContext>();
-            _contacts = new List<Contact>();
+            _contacts =
+            [
+                // Arrange
+                new Contact { Id = 1, FirstName = "Alice", LastName = "Smith", Email = "alice@example.com" },
+                new Contact { Id = 2, FirstName = "Bob", LastName = "Jones", Email = "bob@example.com" },
+            ];
 
             // Setting up mock for JSON Database
-            _jsonDbContextMock.Setup(db => db.GetContacts()).Returns((List<Contact>)_contacts.AsQueryable());
+            _jsonDbContextMock.Setup(db => db.GetContacts()).Returns(_contacts);
 
             // Initialize repository to use JSON database
-            _repository = new GenericRepository<Contact>((JsonDbContext)_jsonDbContextMock.Object, _sqlDbContextMock.Object, true);
+            _repository = new GenericRepository<Contact>(_jsonDbContextMock.Object, _sqlDbContextMock.Object, true);
         }
 
         [Fact]
